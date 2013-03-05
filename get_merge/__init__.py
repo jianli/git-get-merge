@@ -21,22 +21,68 @@ def is_second_parent(child, parent):
         return True
 
 
-def get_merge():
-    try:
-        parent = repo.git.rev_parse(sys.argv[1])
-    except git.exc.GitCommandError:
-        print 'Invalid reference.'
-        return 1
+def get_first_merge_into(parent):
+    """
+    Stupid algorithm which works most of the time.
+
+    Follow the commit downstream and return the first merge into another
+    branch, as opposed to a merge from another branch. Hopefully, this other
+    branch is master.
+
+    Abort if the graph starts branching or terminates.
+    """
     while 1:
         try:
             child, = children_dict[parent]
-        except ValueError:
-            print 'Unable to resolve.'
-            return 1
+        except (ValueError, KeyError):
+            raise ValueError('Unable to resolve.')
         if is_second_parent(child, parent):
-            print repo.git.show(child)
-            return 0
+            return child
         parent = child
+
+
+def get_ancestry_path_first_parent_match(parent):
+    """
+    Find the last common commit between ancestry-path and first-parent.
+
+    Source: http://stackoverflow.com/a/8492711
+
+    This is the correct algorithm assuming a properly-maintained git
+    history. However, if there has ever been a fast-forward merge of a feature
+    branch into master, the first-parent history of master will have been
+    tampered with and this "correct" approach could fail.
+    """
+    ancestry_path = repo.git.rev_list(
+        parent + '..master', ancestry_path=True).split()
+    first_parent = repo.git.rev_list(
+        parent + '..master', first_parent=True).split()
+    for commit in reversed(ancestry_path):
+        if commit in first_parent:
+            return commit
+    raise ValueError('Unable to resolve.')
+
+
+def get_merge():
+    try:
+        parent = repo.git.rev_parse(sys.argv[1])
+    except (git.exc.GitCommandError, IndexError):
+        print 'Invalid reference.'
+        return 1
+
+    commit = None
+    try:
+        commit = get_first_merge_into(parent)
+    except ValueError:
+        try:
+            commit = get_ancestry_path_first_parent_match(parent)
+        except ValueError:
+            pass
+    if commit:
+        print repo.git.show(commit)
+        return 0
+    else:
+        print 'Unable to resolve.'
+        return 1
 
 
 if __name__ == '__main__':
