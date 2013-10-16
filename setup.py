@@ -5,7 +5,7 @@ from setuptools import setup
 setup(
     name='git-get-merge',
     version='0.1',
-    url='http://github.com/jianlius/git-get-merge',
+    url='http://github.com/jianli/git-get-merge',
     packages=find_packages('.'),
     entry_points={
         'console_scripts': (
