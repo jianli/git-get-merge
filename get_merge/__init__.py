@@ -2,7 +2,7 @@ import git
 import os
 import sys
 
-repo = git.Repo(os.getcwd(), odbt=git.GitCmdObjectDB)
+repo = git.Repo(os.getcwd())
 
 children_dict = {}
 for line in repo.git.rev_list('master', children=True).split('\n'):
