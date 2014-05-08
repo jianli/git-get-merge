@@ -43,7 +43,7 @@ def get_first_merge_into(parent):
 
 def get_ancestry_path_first_parent_match(parent):
     """
-    Find the last common commit between ancestry-path and first-parent.
+    Find the earliest common commit between ancestry-path and first-parent.
 
     Source: http://stackoverflow.com/a/8492711
 
@@ -55,7 +55,12 @@ def get_ancestry_path_first_parent_match(parent):
     ancestry_path = repo.git.rev_list(
         parent + '..master', ancestry_path=True).split()
     first_parent = repo.git.rev_list(
-        parent + '..master', first_parent=True).split()
+        'master', first_parent=True).split()
+
+    if parent in set(first_parent):
+        raise ValueError(
+            'This commit was originally made on the master branch?')
+
     for commit in reversed(ancestry_path):
         if commit in first_parent:
             return commit
@@ -75,14 +80,12 @@ def get_merge():
     except ValueError:
         try:
             commit = get_ancestry_path_first_parent_match(parent)
-        except ValueError:
-            pass
-    if commit:
-        print repo.git.show(commit)
-        return 0
-    else:
-        print 'Unable to resolve.'
-        return 1
+        except ValueError as err:
+            print err.message
+            return 1
+
+    print repo.git.show(commit)
+    return 0
 
 
 if __name__ == '__main__':
