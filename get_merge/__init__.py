@@ -2,30 +2,12 @@ import git
 import os
 import sys
 
-repo = git.Repo(os.getcwd())
-
-children_dict = {}
-for line in repo.git.rev_list('master', children=True).split('\n'):
-    commits = line.split()
-    children_dict[commits[0]] = commits[1:]
-
-parents_dict = {}
-for line in repo.git.rev_list('master', parents=True).split('\n'):
-    commits = line.split()
-    parents_dict[commits[0]] = commits[1:]
-
 
 class NotFound(ValueError):
     pass
 
 
-def is_second_parent(child, parent):
-    secondary_parents = parents_dict[child][1:]
-    if parent in secondary_parents:
-        return True
-
-
-def validate(parent):
+def validate(repo, parent):
     master_commits = repo.git.rev_list('master').split()
     if parent not in set(master_commits):
         raise ValueError(
@@ -38,7 +20,7 @@ def validate(parent):
             'This commit was originally made on the master branch?')
 
 
-def get_first_merge_into(parent):
+def get_first_merge_into(repo, parent):
     """
     Stupid algorithm which works most of the time.
 
@@ -48,6 +30,21 @@ def get_first_merge_into(parent):
 
     Abort if the graph starts branching or terminates.
     """
+    children_dict = {}
+    for line in repo.git.rev_list('master', children=True).split('\n'):
+        commits = line.split()
+        children_dict[commits[0]] = commits[1:]
+
+    parents_dict = {}
+    for line in repo.git.rev_list('master', parents=True).split('\n'):
+        commits = line.split()
+        parents_dict[commits[0]] = commits[1:]
+
+    def is_second_parent(child, parent):
+        secondary_parents = parents_dict[child][1:]
+        if parent in secondary_parents:
+            return True
+
     while 1:
         try:
             child, = children_dict[parent]
@@ -58,7 +55,7 @@ def get_first_merge_into(parent):
         parent = child
 
 
-def get_ancestry_path_first_parent_match(parent):
+def get_ancestry_path_first_parent_match(repo, parent):
     """
     Find the earliest common commit between ancestry-path and first-parent.
 
@@ -81,6 +78,8 @@ def get_ancestry_path_first_parent_match(parent):
 
 
 def get_merge():
+    repo = git.Repo(os.getcwd())
+
     try:
         parent = repo.git.rev_parse(sys.argv[1])
     except (git.exc.GitCommandError, IndexError):
@@ -89,11 +88,11 @@ def get_merge():
 
     commit = None
     try:
-        validate(parent)
+        validate(repo, parent)
         try:
-            commit = get_first_merge_into(parent)
+            commit = get_first_merge_into(repo, parent)
         except NotFound:
-            commit = get_ancestry_path_first_parent_match(parent)
+            commit = get_ancestry_path_first_parent_match(repo, parent)
     except ValueError as err:
         print err.message
         return 1
