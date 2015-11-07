@@ -25,6 +25,19 @@ def is_second_parent(child, parent):
         return True
 
 
+def validate(parent):
+    master_commits = repo.git.rev_list('master').split()
+    if parent not in set(master_commits):
+        raise ValueError(
+            'This commit has not actually been merged into master.')
+
+    first_parent = repo.git.rev_list(
+        'master', first_parent=True).split()
+    if parent in set(first_parent):
+        raise ValueError(
+            'This commit was originally made on the master branch?')
+
+
 def get_first_merge_into(parent):
     """
     Stupid algorithm which works most of the time.
@@ -61,10 +74,6 @@ def get_ancestry_path_first_parent_match(parent):
     first_parent = repo.git.rev_list(
         'master', first_parent=True).split()
 
-    if parent in set(first_parent):
-        raise ValueError(
-            'This commit was originally made on the master branch?')
-
     for commit in reversed(ancestry_path):
         if commit in first_parent:
             return commit
@@ -80,6 +89,7 @@ def get_merge():
 
     commit = None
     try:
+        validate(parent)
         try:
             commit = get_first_merge_into(parent)
         except NotFound:
