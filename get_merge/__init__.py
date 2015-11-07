@@ -3,10 +3,6 @@ import os
 import sys
 
 
-class NotFound(ValueError):
-    pass
-
-
 def validate(repo, parent):
     master_commits = repo.git.rev_list('master').split()
     if parent not in set(master_commits):
@@ -49,7 +45,7 @@ def get_first_merge_into(repo, parent):
         try:
             child, = children_dict[parent]
         except (ValueError, KeyError):
-            raise NotFound('Unable to resolve.')
+            return None
         if is_second_parent(child, parent):
             return child
         parent = child
@@ -74,7 +70,7 @@ def get_ancestry_path_first_parent_match(repo, parent):
     for commit in reversed(ancestry_path):
         if commit in first_parent:
             return commit
-    raise NotFound('Unable to resolve.')
+    return None
 
 
 def get_merge():
@@ -86,19 +82,25 @@ def get_merge():
         print 'Invalid reference.'
         return 1
 
-    commit = None
     try:
         validate(repo, parent)
-        try:
-            commit = get_first_merge_into(repo, parent)
-        except NotFound:
-            commit = get_ancestry_path_first_parent_match(repo, parent)
     except ValueError as err:
         print err.message
         return 1
 
-    print repo.git.show(commit)
-    return 0
+    guess1 = get_first_merge_into(repo, parent)
+    guess2 = get_ancestry_path_first_parent_match(repo, parent)
+    if not (guess1 or guess2):
+        print 'Unable to resolve.'
+        return 1
+    if (guess1 and guess2) and guess1 != guess2:
+        print 'Might be either of:'
+        print repo.git.show(guess1)
+        print repo.git.show(guess2)
+        return 0
+    else:
+        print repo.git.show(guess1 or guess2)
+        return 0
 
 
 if __name__ == '__main__':
