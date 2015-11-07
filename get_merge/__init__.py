@@ -15,6 +15,10 @@ for line in repo.git.rev_list('master', parents=True).split('\n'):
     parents_dict[commits[0]] = commits[1:]
 
 
+class NotFound(ValueError):
+    pass
+
+
 def is_second_parent(child, parent):
     secondary_parents = parents_dict[child][1:]
     if parent in secondary_parents:
@@ -35,7 +39,7 @@ def get_first_merge_into(parent):
         try:
             child, = children_dict[parent]
         except (ValueError, KeyError):
-            raise ValueError('Unable to resolve.')
+            raise NotFound('Unable to resolve.')
         if is_second_parent(child, parent):
             return child
         parent = child
@@ -64,7 +68,7 @@ def get_ancestry_path_first_parent_match(parent):
     for commit in reversed(ancestry_path):
         if commit in first_parent:
             return commit
-    raise ValueError('Unable to resolve.')
+    raise NotFound('Unable to resolve.')
 
 
 def get_merge():
@@ -76,13 +80,13 @@ def get_merge():
 
     commit = None
     try:
-        commit = get_first_merge_into(parent)
-    except ValueError:
         try:
+            commit = get_first_merge_into(parent)
+        except NotFound:
             commit = get_ancestry_path_first_parent_match(parent)
-        except ValueError as err:
-            print err.message
-            return 1
+    except ValueError as err:
+        print err.message
+        return 1
 
     print repo.git.show(commit)
     return 0
