@@ -79,27 +79,27 @@ def get_merge():
     try:
         parent = repo.git.rev_parse(sys.argv[1])
     except (git.exc.GitCommandError, IndexError):
-        print 'Invalid reference.'
+        print('Invalid reference.')
         return 1
 
     try:
         validate(repo, parent)
     except ValueError as err:
-        print err.message
+        print(err.message)
         return 1
 
     guess1 = get_first_merge_into(repo, parent)
     guess2 = get_ancestry_path_first_parent_match(repo, parent)
     if not (guess1 or guess2):
-        print 'Unable to resolve.'
+        print('Unable to resolve.')
         return 1
     if (guess1 and guess2) and guess1 != guess2:
-        print 'Might be either of:'
-        print repo.git.show(guess1)
-        print repo.git.show(guess2)
+        print('Might be either of:')
+        print(repo.git.show(guess1))
+        print(repo.git.show(guess2))
         return 0
     else:
-        print repo.git.show(guess1 or guess2)
+        print(repo.git.show(guess1 or guess2))
         return 0
 
 
