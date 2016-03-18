@@ -78,6 +78,7 @@ def get_merge():
 
     try:
         parent = repo.git.rev_parse(sys.argv[1])
+        repo.git.show(sys.argv[1])  # validate existence
     except (git.exc.GitCommandError, IndexError):
         print('Invalid reference.')
         return 1
