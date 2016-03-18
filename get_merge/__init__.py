@@ -85,7 +85,7 @@ def get_merge():
     try:
         validate(repo, parent)
     except ValueError as err:
-        print(err.message)
+        print('\n'.join(err.args))
         return 1
 
     guess1 = get_first_merge_into(repo, parent)
