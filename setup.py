@@ -4,7 +4,7 @@ from setuptools import setup
 
 setup(
     name='git-get-merge',
-    version='0.2',
+    version='0.2.1',
     url='http://github.com/jianli/git-get-merge',
     description='A git command to find the merge that introduced a given commit.',
     packages=find_packages('.'),
