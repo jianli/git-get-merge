@@ -74,6 +74,20 @@ def get_ancestry_path_first_parent_match(repo, parent, branch):
 
 
 def get_merge():
+    if 'help' in sys.argv:
+        print("""usage: git get-merge <sha> [branch]
+
+Attempt to find when commit <sha> was merged to <branch>, where <branch> is
+"master" by default. Two methods are used:
+
+# method 1
+%s
+
+# method 2
+%s
+        """ % (get_first_merge_into.__doc__, get_ancestry_path_first_parent_match.__doc__))
+        return 0
+
     repo = git.Repo(os.getcwd())
 
     try:
