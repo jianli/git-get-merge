@@ -3,36 +3,36 @@ import os
 import sys
 
 
-def validate(repo, parent):
-    master_commits = repo.git.rev_list('master').split()
-    if parent not in set(master_commits):
+def validate(repo, parent, branch):
+    branch_commits = repo.git.rev_list(branch).split()
+    if parent not in set(branch_commits):
         raise ValueError(
-            'This commit has not actually been merged into master.')
+            'This commit has not actually been merged into %s' % branch)
 
     first_parent = repo.git.rev_list(
-        'master', first_parent=True).split()
+        branch, first_parent=True).split()
     if parent in set(first_parent):
         raise ValueError(
-            'This commit was originally made on the master branch?')
+            'This commit was originally made on the %s branch?' % branch)
 
 
-def get_first_merge_into(repo, parent):
+def get_first_merge_into(repo, parent, branch):
     """
     Stupid algorithm which works most of the time.
 
     Follow the commit downstream and return the first merge into another
     branch, as opposed to a merge from another branch. Hopefully, this other
-    branch is master.
+    branch is <branch>.
 
     Abort if the graph starts branching or terminates.
     """
     children_dict = {}
-    for line in repo.git.rev_list('master', children=True).split('\n'):
+    for line in repo.git.rev_list(branch, children=True).split('\n'):
         commits = line.split()
         children_dict[commits[0]] = commits[1:]
 
     parents_dict = {}
-    for line in repo.git.rev_list('master', parents=True).split('\n'):
+    for line in repo.git.rev_list(branch, parents=True).split('\n'):
         commits = line.split()
         parents_dict[commits[0]] = commits[1:]
 
@@ -51,7 +51,7 @@ def get_first_merge_into(repo, parent):
         parent = child
 
 
-def get_ancestry_path_first_parent_match(repo, parent):
+def get_ancestry_path_first_parent_match(repo, parent, branch):
     """
     Find the earliest common commit between ancestry-path and first-parent.
 
@@ -59,13 +59,13 @@ def get_ancestry_path_first_parent_match(repo, parent):
 
     This is the correct algorithm assuming a properly-maintained git
     history. However, if there has ever been a fast-forward merge of a feature
-    branch into master, the first-parent history of master will have been
+    branch into <branch>, the first-parent history of <branch> will have been
     tampered with and this "correct" approach could fail.
     """
     ancestry_path = repo.git.rev_list(
-        parent + '..master', ancestry_path=True).split()
+        parent + '..' + branch, ancestry_path=True).split()
     first_parent = repo.git.rev_list(
-        'master', first_parent=True).split()
+        branch, first_parent=True).split()
 
     for commit in reversed(ancestry_path):
         if commit in first_parent:
@@ -74,7 +74,26 @@ def get_ancestry_path_first_parent_match(repo, parent):
 
 
 def get_merge():
+    if 'help' in sys.argv:
+        print("""usage: git get-merge <sha> [branch]
+
+Attempt to find when commit <sha> was merged to <branch>, where <branch> is
+`master` by default. Two methods are used:
+
+# method 1
+%s
+
+# method 2
+%s
+        """ % (get_first_merge_into.__doc__, get_ancestry_path_first_parent_match.__doc__))
+        return 0
+
     repo = git.Repo(os.getcwd())
+
+    try:
+        branch = sys.argv[2]
+    except IndexError:
+        branch = 'master'
 
     try:
         parent = repo.git.rev_parse(sys.argv[1])
@@ -84,13 +103,13 @@ def get_merge():
         return 1
 
     try:
-        validate(repo, parent)
+        validate(repo, parent, branch)
     except ValueError as err:
         print('\n'.join(err.args))
         return 1
 
-    guess1 = get_first_merge_into(repo, parent)
-    guess2 = get_ancestry_path_first_parent_match(repo, parent)
+    guess1 = get_first_merge_into(repo, parent, branch)
+    guess2 = get_ancestry_path_first_parent_match(repo, parent, branch)
     if not (guess1 or guess2):
         print('Unable to resolve.')
         return 1
