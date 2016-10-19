@@ -1,5 +1,5 @@
 **git get-merge** is a `git` command to locate the merge that introduced a
-given commit into a given branch in your repository ("master" by default). It
+given commit into a given branch in your repository (`master` by default). It
 is correct with very high probability.
 
 ## Installation
@@ -30,7 +30,7 @@ Date:   Fri Jul 4 02:01:40 2014 +0200
 usage: git get-merge <sha> [branch]
 
 Attempt to find when commit <sha> was merged to <branch>, where <branch> is
-"master" by default. Two methods are used:
+`master` by default. Two methods are used:
 
 # method 1
 

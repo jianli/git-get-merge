@@ -7,13 +7,13 @@ def validate(repo, parent, branch):
     branch_commits = repo.git.rev_list(branch).split()
     if parent not in set(branch_commits):
         raise ValueError(
-            'This commit has not actually been merged into %s' % (branch,))
+            'This commit has not actually been merged into %s' % branch)
 
     first_parent = repo.git.rev_list(
         branch, first_parent=True).split()
     if parent in set(first_parent):
         raise ValueError(
-            'This commit was originally made on the %s branch?' % (branch,))
+            'This commit was originally made on the %s branch?' % branch)
 
 
 def get_first_merge_into(repo, parent, branch):
@@ -78,7 +78,7 @@ def get_merge():
         print("""usage: git get-merge <sha> [branch]
 
 Attempt to find when commit <sha> was merged to <branch>, where <branch> is
-"master" by default. Two methods are used:
+`master` by default. Two methods are used:
 
 # method 1
 %s
@@ -91,8 +91,12 @@ Attempt to find when commit <sha> was merged to <branch>, where <branch> is
     repo = git.Repo(os.getcwd())
 
     try:
+        branch = sys.argv[2]
+    except IndexError:
+        branch = 'master'
+
+    try:
         parent = repo.git.rev_parse(sys.argv[1])
-        branch = 'master' if len(sys.argv) < 3 else sys.argv[2]
         repo.git.show(sys.argv[1])  # validate existence
     except (git.exc.GitCommandError, IndexError):
         print('Invalid reference.')
